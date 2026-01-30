@@ -47,6 +47,7 @@ object FormTileMerger: TFormTileMerger
     Top = 0
     Width = 320
     Anchors = [akTop, akLeft, akRight, akBottom]
+    PopupMenu = PopupMenu_ServerList
     ReadOnly = True
     TabOrder = 1
     OnSelectionChanged = TreeView_wmts_listSelectionChanged
@@ -208,6 +209,14 @@ object FormTileMerger: TFormTileMerger
     object MenuItem_TV_ZoomToResolution: TMenuItem
       Caption = '缩放到分辨率'
       OnClick = MenuItem_TV_ZoomToResolutionClick
+    end
+  end
+  object PopupMenu_ServerList: TPopupMenu
+    left = 600
+    top = 336
+    object MenuItem_SL_Reload: TMenuItem
+      Caption = '重新加载'
+      OnClick = MenuItem_SL_ReloadClick
     end
   end
 end

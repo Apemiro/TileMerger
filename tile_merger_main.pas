@@ -26,6 +26,7 @@ type
     CalendarFlow_TimeOption: TCalendarFlow;
     Label_export: TLabel;
     MainMenu_TileMerger: TMainMenu;
+    MenuItem_SL_Reload: TMenuItem;
     MenuItem_ViewShowScale: TMenuItem;
     MenuItem_TV_ZoomToResolution: TMenuItem;
     MenuItem_TV_Redownload: TMenuItem;
@@ -50,6 +51,7 @@ type
     MenuItem_ServerAdd: TMenuItem;
     MenuItem_Server: TMenuItem;
     Panel_viewer: TPanel;
+    PopupMenu_ServerList: TPopupMenu;
     PopupMenu_TileViewer: TPopupMenu;
     Splitter_PanelH: TSplitter;
     Splitter_MainV: TSplitter;
@@ -62,6 +64,7 @@ type
     procedure MenuItem_DownloadModeSwitchClick(Sender: TObject); //所有的MenuItem_DownloadMode*的OnClick都执行这个
     procedure MenuItem_OptionAboutClick(Sender: TObject);
     procedure MenuItem_OptionLogClick(Sender: TObject);
+    procedure MenuItem_SL_ReloadClick(Sender: TObject);
     procedure MenuItem_TV_RedownloadClick(Sender: TObject);
     procedure MenuItem_TV_ZoomToResolutionClick(Sender: TObject);
     procedure MenuItem_ViewAutoFetchClick(Sender: TObject);
@@ -73,6 +76,7 @@ type
     FTileViewer:TTileViewer;
   public
     procedure UpdateStatusBar(Sender: TObject);
+    procedure UpdateServerListEntry(Server:TWMTS_Service; ServerNode:TTreeNode=nil);
   end;
 
 var
@@ -105,9 +109,9 @@ begin
     node:=TreeView_wmts_list.Items.AddChild(root,server.DisplayName);
     node.Data:=server;
 
+    UpdateServerListEntry(server, node);
+    {
     lyrs:=node;//展开LYRs列表
-    //lyrs:=TreeView_wmts_list.Items.AddChild(node,'数据图层');
-    //tmss:=TreeView_wmts_list.Items.AddChild(node,'层级方案');
     len:=server.LayerCount;
     for idx:=0 to len-1 do begin
       tmplayer:=server.Layers[idx];
@@ -119,13 +123,6 @@ begin
           TreeView_wmts_list.Items.AddChild(layer,TWMTS_ParameterValue(option_value).Value).Data:=option_value;
         end;
       end;
-    end;
-    //不再单独呈现TMSs列表，使用TMSLink
-    {
-    len:=server.TileMatrixSetCount;
-    for idx:=0 to len-1 do begin
-      tmpTMS:=server.TileMatrixSets[idx];
-      TreeView_wmts_list.Items.AddChild(tmss,tmpTMS.Identifier).Data:=tmpTMS;
     end;
     }
   end;
@@ -186,6 +183,22 @@ end;
 procedure TFormTileMerger.MenuItem_OptionLogClick(Sender: TObject);
 begin
   Form_Debug.Show;
+end;
+
+procedure TFormTileMerger.MenuItem_SL_ReloadClick(Sender: TObject);
+var DataObject:TObject;
+    tmpServer:TWMTS_Service;
+begin
+  DataObject:=TObject(TreeView_wmts_list.Selected.Data);
+  if DataObject is TWMTS_Service then begin
+
+
+    tmpServer:=TWMTS_Service(DataObject);
+    tmpServer.Clear;//只清除layer和tms
+    tmpServer.LoadFromManifestXml(tmpServer.XmlURL,tmpServer.Config,true);
+    UpdateServerListEntry(tmpServer);
+    FTileViewer.InitializeLayerAndTileMatrixSet(tmpServer.Layers[0],tmpServer.TileMatrixSets[0]);
+  end;
 end;
 
 //{$define MonoTile}
@@ -264,6 +277,9 @@ begin
   DataObject:=TObject(TreeView_wmts_list.Selected.Data);
   if DataObject=nil then exit;
   if DataObject is TWMTS_Layer then FTileViewer.CurrentLayer:=DataObject as TWMTS_Layer;
+  if DataObject is TWMTS_Service then
+    if TWMTS_Service(DataObject).LayerCount=1 then
+      FTileViewer.CurrentLayer:=TWMTS_Service(DataObject).Layers[0];
   if DataObject is TWMTS_TileMatrixSet then FTileViewer.CurrentTileMatrixSet:=DataObject as TWMTS_TileMatrixSet;
   if DataObject is TWMTS_ParameterValue then begin
     TWMTS_ParameterValue(DataObject).Owner.Selected:=TWMTS_ParameterValue(DataObject);
@@ -295,6 +311,51 @@ begin
     if TimeTagSelected<>0.0 then CalendarFlow_TimeOption.CurrentDate:=TimeTagSelected;
   end;
   CalendarFlow_TimeOption.Refresh; //没有时间参数时，时间轴界面会回到1899/12/31，目前看问题不大
+end;
+
+procedure TFormTileMerger.UpdateServerListEntry(Server:TWMTS_Service; ServerNode:TTreeNode=nil);
+//ServerNode为nil的时候通过Server查找已有项，清空后重新生成自项目
+var root,node,layer:TTreeNode;
+    tmplayer:TWMTS_Layer;
+    idx,len:integer;
+    option_key,option_value:TCollectionItem;
+begin
+  TreeView_wmts_list.BeginUpdate;
+  try
+    node:=nil;
+    if ServerNode<>nil then
+      node:=ServerNode
+    else begin
+      root:=TreeView_wmts_list.Items.FindNodeWithText('地图服务器');
+      len:=root.Count;
+      for idx:=0 to len-1 do begin
+        if TObject(root.Items[idx].Data) = TObject(Server) then begin
+          node:=TTreeNode(root.Items[idx]);
+          break;
+        end;
+      end;
+    end;
+    if node=nil then begin
+      node:=TreeView_wmts_list.Items.AddChild(root,Server.DisplayName);
+    end else begin;
+      len:=node.count;
+      for idx:=len-1 downto 0 do TreeView_wmts_list.Items.Delete(node.Items[idx]);//node.Items[idx].Delete;
+    end;
+    len:=Server.LayerCount;
+    for idx:=0 to len-1 do begin
+      tmplayer:=Server.Layers[idx];
+      layer:=TreeView_wmts_list.Items.AddChild(node,tmplayer.Title);
+      layer.Data:=tmplayer;
+
+      for option_key in tmplayer.ParameterList do begin
+        for option_value in tmplayer.ParameterList[TWMTS_Parameter(option_key).Title].ValueList do begin
+          TreeView_wmts_list.Items.AddChild(layer,TWMTS_ParameterValue(option_value).Value).Data:=option_value;
+        end;
+      end;
+    end;
+  finally
+    TreeView_wmts_list.EndUpdate;
+  end;
 end;
 
 initialization
