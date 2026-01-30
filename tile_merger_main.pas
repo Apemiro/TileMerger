@@ -14,7 +14,7 @@ uses
 
 const
   _appname_ = 'Apiglio TileMerger';
-  _version_ = '0.5';
+  _version_ = '0.6';
   _authors_ = 'Apiglio';
   _newline_ = {$ifdef windows}#13#10{$else}#10{$endif};
 
@@ -71,6 +71,10 @@ type
     procedure MenuItem_ViewShowGridClick(Sender: TObject);
     procedure MenuItem_ViewShowInfoClick(Sender: TObject);
     procedure MenuItem_ViewShowScaleClick(Sender: TObject);
+    procedure TreeView_wmts_listMouseDown(Sender: TObject;
+      Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+    procedure TreeView_wmts_listMouseUp(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
     procedure TreeView_wmts_listSelectionChanged(Sender: TObject);
   private
     FTileViewer:TTileViewer;
@@ -270,10 +274,41 @@ begin
   FTileViewer.Refresh;
 end;
 
+procedure TFormTileMerger.TreeView_wmts_listMouseDown(Sender: TObject;
+  Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+var tmpNode:TTreeNode;
+begin
+  if Button<>mbRight then exit;
+  tmpNode:=TreeView_wmts_list.GetNodeAt(X,Y);
+  TreeView_wmts_list.BeginUpdate;
+  if tmpNode<>nil then try
+    TreeView_wmts_list.ClearSelection;
+    TreeView_wmts_list.Select(tmpNode);
+  finally
+    TreeView_wmts_list.EndUpdate;
+  end;
+end;
+
+procedure TFormTileMerger.TreeView_wmts_listMouseUp(Sender: TObject;
+  Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+var tmpNode:TTreeNode;
+begin
+  if Button<>mbRight then exit;
+  tmpNode:=TreeView_wmts_list.GetNodeAt(X,Y);
+  TreeView_wmts_list.BeginUpdate;
+  if tmpNode<>nil then try
+    TreeView_wmts_list.ClearSelection;
+    TreeView_wmts_list.Select(tmpNode);
+  finally
+    TreeView_wmts_list.EndUpdate;
+  end;
+end;
+
 procedure TFormTileMerger.TreeView_wmts_listSelectionChanged(Sender: TObject);
 var DataObject:TObject;
     tmpLayer:TWMTS_Layer;
 begin
+  if TreeView_wmts_list.Selected=nil then exit;
   DataObject:=TObject(TreeView_wmts_list.Selected.Data);
   if DataObject=nil then exit;
   if DataObject is TWMTS_Layer then FTileViewer.CurrentLayer:=DataObject as TWMTS_Layer;
@@ -313,7 +348,8 @@ begin
     CalendarFlow_TimeOption.EndUpdate;
     if TimeTagSelected<>0.0 then CalendarFlow_TimeOption.CurrentDate:=TimeTagSelected;
   end;
-  CalendarFlow_TimeOption.Refresh; //没有时间参数时，时间轴界面会回到1899/12/31，目前看问题不大
+  if FTileViewer.CurrentLayer.TimeTagCount=0 then CalendarFlow_TimeOption.CurrentDate:=Now;
+  CalendarFlow_TimeOption.Refresh;
 end;
 
 procedure TFormTileMerger.UpdateServerListEntry(Server:TWMTS_Service; ServerNode:TTreeNode=nil);
