@@ -8,7 +8,7 @@
       <Unit0>
         <Filename Value="TileMerger.lpr"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="7"/>
+        <EditorIndex Value="6"/>
         <CursorPos X="20" Y="10"/>
         <UsageCount Value="204"/>
         <Loaded Value="True"/>
@@ -19,8 +19,9 @@
         <ComponentName Value="FormTileMerger"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
-        <TopLine Value="273"/>
-        <CursorPos X="33" Y="282"/>
+        <IsVisibleTab Value="True"/>
+        <TopLine Value="264"/>
+        <CursorPos X="45" Y="282"/>
         <UsageCount Value="204"/>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
@@ -28,7 +29,7 @@
       <Unit2>
         <Filename Value="tile_merger_view.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="6"/>
+        <EditorIndex Value="5"/>
         <TopLine Value="763"/>
         <CursorPos X="67" Y="779"/>
         <UsageCount Value="200"/>
@@ -37,7 +38,7 @@
       <Unit3>
         <Filename Value="tile_merger_wmts_client.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="5"/>
+        <EditorIndex Value="4"/>
         <TopLine Value="1071"/>
         <CursorPos X="3" Y="1098"/>
         <UsageCount Value="200"/>
@@ -69,7 +70,7 @@
         <ComponentName Value="Form_Debug"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
-        <EditorIndex Value="3"/>
+        <EditorIndex Value="2"/>
         <TopLine Value="12"/>
         <CursorPos X="30" Y="21"/>
         <UsageCount Value="200"/>
@@ -82,7 +83,7 @@
         <ComponentName Value="Form_ExportTiff"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
-        <EditorIndex Value="4"/>
+        <EditorIndex Value="3"/>
         <TopLine Value="46"/>
         <CursorPos X="18" Y="68"/>
         <UsageCount Value="200"/>
@@ -92,7 +93,7 @@
       <Unit8>
         <Filename Value="tile_merger_tiff.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="2"/>
+        <EditorIndex Value="1"/>
         <CursorPos X="80" Y="25"/>
         <UsageCount Value="203"/>
         <Loaded Value="True"/>
@@ -100,7 +101,7 @@
       <Unit9>
         <Filename Value="tile_merger_projection.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="8"/>
+        <EditorIndex Value="7"/>
         <TopLine Value="45"/>
         <CursorPos X="20" Y="64"/>
         <UsageCount Value="173"/>
@@ -375,12 +376,10 @@
       </Unit46>
       <Unit47>
         <Filename Value="D:\lazarus\lcl\include\picture.inc"/>
-        <IsVisibleTab Value="True"/>
-        <EditorIndex Value="1"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="619"/>
         <CursorPos X="83" Y="629"/>
         <UsageCount Value="10"/>
-        <Loaded Value="True"/>
       </Unit47>
       <Unit48>
         <Filename Value="D:\lazarus\lcl\graphics.pp"/>

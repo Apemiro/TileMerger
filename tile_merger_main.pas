@@ -278,8 +278,11 @@ begin
   if DataObject=nil then exit;
   if DataObject is TWMTS_Layer then FTileViewer.CurrentLayer:=DataObject as TWMTS_Layer;
   if DataObject is TWMTS_Service then
-    if TWMTS_Service(DataObject).LayerCount=1 then
+    if TWMTS_Service(DataObject).LayerCount=1 then begin
       FTileViewer.CurrentLayer:=TWMTS_Service(DataObject).Layers[0];
+    end else begin
+      TreeView_wmts_list.Selected.Expanded:=true;
+    end;
   if DataObject is TWMTS_TileMatrixSet then FTileViewer.CurrentTileMatrixSet:=DataObject as TWMTS_TileMatrixSet;
   if DataObject is TWMTS_ParameterValue then begin
     TWMTS_ParameterValue(DataObject).Owner.Selected:=TWMTS_ParameterValue(DataObject);
