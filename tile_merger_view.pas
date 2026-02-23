@@ -10,7 +10,7 @@ uses
   {$endif}
   Classes, SysUtils, Controls, Graphics, FileUtil, FPimage, FPWriteTIFF,
   fphttpclient, openssl, URIParser,
-  tile_merger_projection, tile_merger_wmts_client, tile_merger_tiff;
+  tile_merger_projection, tile_merger_wmts_client, tile_merger_tiff, tile_merger_feature;
 
 type
 
@@ -212,11 +212,18 @@ type
   protected
     procedure ProportionCorrection;
     procedure CoordinateCorrection;
+    procedure PaintFeature;
     procedure PaintScale;
     procedure PaintInfo;
     procedure PaintStop;
     procedure PaintTile(ATile:TTile);
     procedure Paint; override;
+  private
+    FMarkLayer:TWMTS_Layer; //用于显示预渲染标注图层
+    FFeatureLayers:TList;   //用于显示几何图形
+  public
+    procedure AddFeatureLayer(AFeatureLayer:TWMTS_FeatureLayer);
+    procedure ClearFeatureLayers;
   private
     FOnLayerChange:TNotifyEvent;
     FOnTileMatrixSetChange:TNotifyEvent;
@@ -240,7 +247,7 @@ type
   end;
 
 implementation
-uses debugline, math;
+uses debugline, math, LazUTF8;
 
 function fetch_tile_result_to_str(fetchresult:TFetchTileResult):string;
 begin
@@ -854,7 +861,7 @@ end;
 
 procedure TTileViewer.MouseDown(Button:TMouseButton;Shift:TShiftState;X,Y:Integer);
 begin
-  if Button<>mbMiddle then exit;
+  if not (Button in [mbMiddle, mbLeft]) then exit;
   FMovementEnabled:=true;
   FMovementCursor:=Classes.Point(X,Y);
   FMovementCenter:=CanvasCenter;
@@ -862,7 +869,7 @@ end;
 
 procedure TTileViewer.MouseUp(Button:TMouseButton;Shift:TShiftState;X,Y:Integer);
 begin
-  if Button=mbMiddle then begin
+  if Button in [mbMiddle, mbLeft] then begin
     FMovementEnabled:=false;
     Paint;
   end;
@@ -1016,6 +1023,98 @@ function BestMeterUnit(len:double):string;
 begin
   if len >= 1000 then result:=Format('%.0fkm',[len/1000])
   else result:=Format('%.0fm',[len]);
+end;
+
+procedure drawCanvasCircle(aCanvas:TCanvas;aPoint:TPoint;aSize:integer);inline;
+var symbol_color:TColor;
+begin
+  symbol_color:=aCanvas.Pen.Color;
+  aCanvas.Pen.Color:=clWhite;
+  aCanvas.Chord(
+    aPoint.x-aSize-1, aPoint.y-aSize-1,
+    aPoint.x+aSize+1, aPoint.y+aSize+1,
+    0,360*16);
+  aCanvas.Pen.Color:=symbol_color;
+  aCanvas.Chord(
+    aPoint.x-aSize, aPoint.y-aSize,
+    aPoint.x+aSize, aPoint.y+aSize,
+    0,360*16);
+end;
+
+procedure drawCanvasText(aCanvas:TCanvas;aPoint:TPoint;aText:string;offset_x:integer=0;offset_y:integer=0);inline;
+var font_color:TColor;
+begin
+  font_color:=aCanvas.Font.Color;
+  aCanvas.Font.Color:=clWhite;
+  aCanvas.TextOut(aPoint.x+offset_x+1, aPoint.y+offset_y+1, aText);
+  aCanvas.TextOut(aPoint.x+offset_x-1, aPoint.y+offset_y+1, aText);
+  aCanvas.TextOut(aPoint.x+offset_x-1, aPoint.y+offset_y-1, aText);
+  aCanvas.TextOut(aPoint.x+offset_x+1, aPoint.y+offset_y-1, aText);
+  aCanvas.Font.Color:=font_color;
+  aCanvas.TextOut(aPoint.x+offset_x, aPoint.y+offset_y, aText);
+end;
+
+procedure TTileViewer.PaintFeature;
+var idx,len,fid:integer;
+    tmpFL:TWMTS_FeatureLayer;
+    tmpFT:TAGeoFeature;
+    tmpPoint:TPoint;
+    gpLL,gpXY:TGeoPoint;
+begin
+  len:=FFeatureLayers.Count;
+  if len=0 then exit;
+
+  //统一绘制图形
+  Canvas.Brush.Color:=clRed;
+  Canvas.Brush.Style:=bsSolid;
+  Canvas.Pen.Color:=clBlack;
+  Canvas.Pen.Style:=psSolid;
+  Canvas.Pen.Width:=1;
+  for idx:=0 to len-1 do begin
+    tmpFL:=TWMTS_FeatureLayer(FFeatureLayers.Items[idx]);
+    if not tmpFL.Visible then continue;
+
+    for fid:=tmpFL.Features.Count-1 downto 0 do begin
+      tmpFT:=tmpFL.Features.Items[fid];
+      case tmpFT.ClassName of
+        'TAGeoPointGeometry':
+          begin
+            gpLL.X:=TAGeoPointGeometry(tmpFT).X;
+            gpLL.Y:=TAGeoPointGeometry(tmpFT).Y;
+            gpXY:=CurrentTileMatrixSet.Projection.LatlongToXY(gpLL);
+            tmpPoint:=LocationToCursor(gpXY.X, gpXY.Y);
+            drawCanvasCircle(Canvas, tmpPoint, 4);
+          end
+        else assert(false, '异常的要素类型');
+      end;
+    end;
+  end;
+
+  //统一绘制标注
+  Canvas.Font.Color:=clMaroon;
+  Canvas.Font.Size:=12;
+  Canvas.Brush.Style:=bsClear;
+  for idx:=0 to len-1 do begin
+    tmpFL:=TWMTS_FeatureLayer(FFeatureLayers.Items[idx]);
+    if not tmpFL.Visible then continue;
+
+    for fid:=tmpFL.Features.Count-1 downto 0 do begin
+      tmpFT:=tmpFL.Features.Items[fid];
+      case tmpFT.ClassName of
+        'TAGeoPointGeometry':
+          begin
+            gpLL.X:=TAGeoPointGeometry(tmpFT).X;
+            gpLL.Y:=TAGeoPointGeometry(tmpFT).Y;
+            gpXY:=CurrentTileMatrixSet.Projection.LatlongToXY(gpLL);
+            tmpPoint:=LocationToCursor(gpXY.X, gpXY.Y);
+            drawCanvasText(Canvas, tmpPoint, tmpFT.LabelText, 12, -12);
+          end
+        else assert(false, '异常的要素类型');
+      end;
+    end;
+  end;
+
+
 end;
 
 procedure TTileViewer.PaintScale;
@@ -1227,8 +1326,19 @@ begin
     end;
     inc(index);
   end;
+  PaintFeature;
   PaintInfo;
   PaintScale;
+end;
+
+procedure TTileViewer.AddFeatureLayer(AFeatureLayer:TWMTS_FeatureLayer);
+begin
+  FFeatureLayers.Add(AFeatureLayer);
+end;
+
+procedure TTileViewer.ClearFeatureLayers;
+begin
+  FFeatureLayers.Clear;
 end;
 
 procedure TTileViewer.Clear;
@@ -1499,6 +1609,10 @@ begin
   FCurrentLayer:=nil;
   FCurrentTileMatrixSet:=nil;
   FMovementEnabled:=false;
+
+  FMarkLayer:=nil;
+  FFeatureLayers:=TList.Create;
+
   FShowGrid:=false;
   FShowInfo:=false;
   FShowScale:=true;//暂时强制显示
@@ -1516,6 +1630,7 @@ end;
 destructor TTileViewer.Destroy;
 begin
   Clear;
+  FFeatureLayers.Free;
   FTilePool.Free;
   FExportPool.Free;
   inherited Destroy;

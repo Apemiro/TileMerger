@@ -8,8 +8,8 @@ uses
   {$ENDIF}{$ENDIF}
   Interfaces, // this includes the LCL widgetset
   Forms, lazcontrols, tile_merger_main, tile_merger_wmts_client, debugline,
-  exporttiff, tile_merger_tiff, tile_merger_projection
-  { you can add units after this };
+  exporttiff, tile_merger_tiff, tile_merger_projection, tile_merger_feature,
+  form_search_poi, tile_merger_poi_client;
 
 {$R *.res}
 
@@ -19,6 +19,7 @@ begin
   Application.CreateForm(TFormTileMerger, FormTileMerger);
   Application.CreateForm(TForm_Debug, Form_Debug);
   Application.CreateForm(TForm_ExportTiff, Form_ExportTiff);
+  Application.CreateForm(TForm_PoiServer, Form_PoiServer);
   Application.Run;
 end.
 

@@ -1,0 +1,54 @@
+object Form_PoiServer: TForm_PoiServer
+  Left = 871
+  Height = 383
+  Top = 575
+  Width = 540
+  Caption = 'POI服务设置'
+  ClientHeight = 383
+  ClientWidth = 540
+  DesignTimePPI = 144
+  Position = poMainFormCenter
+  LCLVersion = '1.8.4.0'
+  object Memo_PoiSearchEntries: TMemo
+    AnchorSideLeft.Control = Owner
+    AnchorSideTop.Control = Owner
+    AnchorSideRight.Control = Owner
+    AnchorSideRight.Side = asrBottom
+    AnchorSideBottom.Control = Button_Search
+    Left = 0
+    Height = 320
+    Top = 0
+    Width = 540
+    Anchors = [akTop, akLeft, akRight, akBottom]
+    TabOrder = 0
+  end
+  object Button_Search: TButton
+    AnchorSideLeft.Control = Owner
+    AnchorSideLeft.Side = asrCenter
+    AnchorSideBottom.Control = Owner
+    AnchorSideBottom.Side = asrBottom
+    Left = 205
+    Height = 47
+    Top = 328
+    Width = 131
+    Anchors = [akLeft, akBottom]
+    BorderSpacing.Top = 8
+    BorderSpacing.Bottom = 8
+    Caption = '搜索以上地名'
+    OnClick = Button_SearchClick
+    TabOrder = 1
+  end
+  object Edit_CityParam: TEdit
+    AnchorSideTop.Control = Button_Search
+    AnchorSideTop.Side = asrCenter
+    AnchorSideRight.Control = Button_Search
+    Left = 77
+    Height = 32
+    Top = 335
+    Width = 120
+    Anchors = [akTop, akRight]
+    BorderSpacing.Right = 8
+    TabOrder = 2
+    Text = '福州'
+  end
+end

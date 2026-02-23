@@ -115,9 +115,13 @@ object FormTileMerger: TFormTileMerger
     top = 336
     object MenuItem_Server: TMenuItem
       Caption = '服务器'
-      object MenuItem_ServerAdd: TMenuItem
-        Caption = '服务器列表'
+      object MenuItem_WmtsServer: TMenuItem
+        Caption = 'WMTS设置'
         Enabled = False
+      end
+      object MenuItem_PoiServer: TMenuItem
+        Caption = 'POI设置'
+        OnClick = MenuItem_PoiServerClick
       end
     end
     object MenuItem_View: TMenuItem

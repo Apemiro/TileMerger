@@ -26,6 +26,7 @@ type
     CalendarFlow_TimeOption: TCalendarFlow;
     Label_export: TLabel;
     MainMenu_TileMerger: TMainMenu;
+    MenuItem_PoiServer: TMenuItem;
     MenuItem_SL_Reload: TMenuItem;
     MenuItem_ViewShowScale: TMenuItem;
     MenuItem_TV_ZoomToResolution: TMenuItem;
@@ -48,7 +49,7 @@ type
     MenuItem_DownloadCachePath: TMenuItem;
     MenuItem_Download: TMenuItem;
     MenuItem_View: TMenuItem;
-    MenuItem_ServerAdd: TMenuItem;
+    MenuItem_WmtsServer: TMenuItem;
     MenuItem_Server: TMenuItem;
     Panel_viewer: TPanel;
     PopupMenu_ServerList: TPopupMenu;
@@ -64,6 +65,7 @@ type
     procedure MenuItem_DownloadModeSwitchClick(Sender: TObject); //所有的MenuItem_DownloadMode*的OnClick都执行这个
     procedure MenuItem_OptionAboutClick(Sender: TObject);
     procedure MenuItem_OptionLogClick(Sender: TObject);
+    procedure MenuItem_PoiServerClick(Sender: TObject);
     procedure MenuItem_SL_ReloadClick(Sender: TObject);
     procedure MenuItem_TV_RedownloadClick(Sender: TObject);
     procedure MenuItem_TV_ZoomToResolutionClick(Sender: TObject);
@@ -81,6 +83,7 @@ type
   public
     procedure UpdateStatusBar(Sender: TObject);
     procedure UpdateServerListEntry(Server:TWMTS_Service; ServerNode:TTreeNode=nil);
+    procedure UpdateFeatureListEntry;
   end;
 
 var
@@ -88,7 +91,7 @@ var
   WMTS_Client:TWMTS_Client;
 
 implementation
-uses debugline, exporttiff, tile_merger_projection;
+uses debugline, exporttiff, form_search_poi, tile_merger_projection;
 
 {$R *.lfm}
 
@@ -105,6 +108,7 @@ begin
   FTileViewer:=TTileViewer.Create(Self);
   FTileViewer.Parent:=Panel_viewer;
   FTileViewer.Align:=alClient;
+  TreeView_wmts_list.Items.Add(nil,'要素图层');
   root:=TreeView_wmts_list.Items.Add(nil,'地图服务器');
   root.Data:=nil;
   len_server:=WMTS_Client.ServiceCount;
@@ -112,24 +116,11 @@ begin
     server:=WMTS_Client.Services[idx_server];
     node:=TreeView_wmts_list.Items.AddChild(root,server.DisplayName);
     node.Data:=server;
-
     UpdateServerListEntry(server, node);
-    {
-    lyrs:=node;//展开LYRs列表
-    len:=server.LayerCount;
-    for idx:=0 to len-1 do begin
-      tmplayer:=server.Layers[idx];
-      layer:=TreeView_wmts_list.Items.AddChild(lyrs,tmplayer.Title);
-      layer.Data:=tmplayer;
-
-      for option_key in tmplayer.ParameterList do begin
-        for option_value in tmplayer.ParameterList[TWMTS_Parameter(option_key).Title].ValueList do begin
-          TreeView_wmts_list.Items.AddChild(layer,TWMTS_ParameterValue(option_value).Value).Data:=option_value;
-        end;
-      end;
-    end;
-    }
   end;
+  UpdateFeatureListEntry;
+  FTileViewer.AddFeatureLayer(WMTS_Client.FeatureLayers[0]);
+
   server:=WMTS_Client.Services[0];
   FTileViewer.InitializeLayerAndTileMatrixSet(server.Layers[0],server.TileMatrixSets[0]);
   FTileViewer.AutoFetchTile:=true;
@@ -187,6 +178,12 @@ end;
 procedure TFormTileMerger.MenuItem_OptionLogClick(Sender: TObject);
 begin
   Form_Debug.Show;
+end;
+
+procedure TFormTileMerger.MenuItem_PoiServerClick(Sender: TObject);
+begin
+  //临时用于查找POI，该菜单按键后续用于POI服务器的设置
+  Form_PoiServer.Show;
 end;
 
 procedure TFormTileMerger.MenuItem_SL_ReloadClick(Sender: TObject);
@@ -391,6 +388,30 @@ begin
           TreeView_wmts_list.Items.AddChild(layer,TWMTS_ParameterValue(option_value).Value).Data:=option_value;
         end;
       end;
+    end;
+  finally
+    TreeView_wmts_list.EndUpdate;
+  end;
+end;
+
+procedure TFormTileMerger.UpdateFeatureListEntry;
+var root,node:TTreeNode;
+    tmpFeatureLayer:TWMTS_FeatureLayer;
+    idx,len:integer;
+    option_key,option_value:TCollectionItem;
+begin
+  TreeView_wmts_list.BeginUpdate;
+  try
+    node:=nil;
+    root:=TreeView_wmts_list.Items.FindNodeWithText('要素图层');
+    len:=root.Count;
+    for idx:=len-1 downto 0 do begin
+      TreeView_wmts_list.Items.Delete(root.Items[idx]);
+    end;
+    len:=WMTS_Client.FeatureLayerCount;
+    for idx:=0 to len-1 do begin
+      tmpFeatureLayer:=WMTS_Client.FeatureLayers[idx];
+      TreeView_wmts_list.Items.AddChild(root, tmpFeatureLayer.Title).Data:=tmpFeatureLayer;
     end;
   finally
     TreeView_wmts_list.EndUpdate;

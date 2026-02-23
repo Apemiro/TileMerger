@@ -9,7 +9,7 @@ uses
   cthreads,
   {$endif}
   Classes, SysUtils, fphttpclient, openssl, DOM, XMLRead,
-  Dialogs, tile_merger_projection;
+  Dialogs, tile_merger_projection, tile_merger_feature;
 
 type
 
@@ -213,15 +213,36 @@ type
     destructor Destroy; override;
   end;
 
+  TWMTS_FeatureLayer = class
+  private
+    FTitle:String;
+    FDisplayName:String;
+    FFeatures:TAGeoFeatures;
+    FVisible:Boolean;
+  public
+    constructor Create;
+    destructor Destroy; override;
+  public
+    property Title:String read FTitle write FTitle;
+    property DisplayName:String read FDisplayName write FDisplayName;
+    property Features:TAGeoFeatures read FFeatures;
+    property Visible:Boolean read FVisible write FVisible;
+  end;
+
   TWMTS_Client = class
   private
     FServiceList:TList;
+    FFeatureLayerList:TList;
   protected
     function GetService(index:integer):TWMTS_Service;
     function GetServiceCount:Integer;
+    function GetFeatureLayer(index:integer):TWMTS_FeatureLayer;
+    function GetFeatureLayerCount:Integer;
   public
     property Services[index:integer]:TWMTS_Service read GetService;
     property ServiceCount:Integer read GetServiceCount;
+    property FeatureLayers[index:integer]:TWMTS_FeatureLayer read GetFeatureLayer;
+    property FeatureLayerCount:integer read GetFeatureLayerCount;
   public
     procedure Clear;
     constructor Create;
@@ -911,6 +932,20 @@ begin
 end;
 
 
+{ TWMTS_FeatureLayer }
+
+constructor TWMTS_FeatureLayer.Create;
+begin
+  inherited Create;
+  FFeatures:=TAGeoFeatures.Create;
+end;
+
+destructor TWMTS_FeatureLayer.Destroy;
+begin
+  FFeatures.Free;
+  inherited Destroy;
+end;
+
 
 { TWMTS_Client }
 
@@ -927,6 +962,19 @@ begin
   result:=FServiceList.Count;
 end;
 
+function TWMTS_Client.GetFeatureLayer(index:integer):TWMTS_FeatureLayer;
+begin
+  result:=nil;
+  if index<0 then exit;
+  if index>=FFeatureLayerList.Count then exit;
+  result:=TWMTS_FeatureLayer(FFeatureLayerList.Items[index]);
+end;
+
+function TWMTS_Client.GetFeatureLayerCount:Integer;
+begin
+  result:=FFeatureLayerList.Count;
+end;
+
 procedure TWMTS_Client.Clear;
 begin
   while FServiceList.Count>0 do begin
@@ -940,9 +988,30 @@ constructor TWMTS_Client.Create;
 const _wayback_ = 'https://wayback-a.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/WMTS/1.0.0/WMTSCapabilities.xml';
 var tmpService:TWMTS_Service;
     tmpServiceConfig:TWMTS_Service_Config;
+    tmpFeatureLayer:TWMTS_FeatureLayer;
+    tmpPoint:TAGeoPointGeometry;
 begin
   inherited Create;
   FServiceList:=TList.Create;
+  FFeatureLayerList:=TList.Create;
+
+  //测试点数据
+  tmpFeatureLayer:=TWMTS_FeatureLayer.Create;
+  tmpFeatureLayer.Title:='搜索结果';
+  tmpFeatureLayer.DisplayName:='搜索结果';
+  tmpFeatureLayer.Visible:=true;
+  tmpPoint:=TAGeoPointGeometry.Create(2);
+  tmpPoint.X:=119.30;
+  tmpPoint.Y:=26.05;
+  tmpPoint.LabelText:='福州';
+  tmpFeatureLayer.Features.AddFeature(tmpPoint);
+  tmpPoint:=TAGeoPointGeometry.Create(2);
+  tmpPoint.X:=110.69;
+  tmpPoint.Y:=32.16;
+  tmpPoint.LabelText:='测试点';
+  tmpFeatureLayer.Features.AddFeature(tmpPoint);
+  FFeatureLayerList.Add(tmpFeatureLayer);
+
 
   tmpServiceConfig.url_replacement.old_pattern:='//wayback.';
   tmpServiceConfig.url_replacement.new_pattern:='//wayback-a.';
@@ -1111,6 +1180,7 @@ destructor TWMTS_Client.Destroy;
 begin
   Clear;
   FServiceList.Free;
+  FFeatureLayerList.Free;
   inherited Destroy;
 end;
 
