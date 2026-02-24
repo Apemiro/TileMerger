@@ -61,6 +61,7 @@ type
     function AddFeature(AFeature:TAGeoFeature):Integer;
     function RemoveFeature(Index:Integer):boolean;
     procedure Clear;
+    procedure SaveToCSV(filename:string);
     constructor Create;
     destructor Destroy; override;
   protected
@@ -208,6 +209,29 @@ begin
     TAGeoFeature(FFeatureList.Items[idx]).Free;
   end;
   FFeatureList.Clear;
+end;
+
+procedure TAGeoFeatures.SaveToCSV(filename:string);
+var idx,len:integer;
+    lines:TStringList;
+    tmpFT:TAGeoFeature;
+begin
+  len:=FFeatureList.Count;
+  lines:=TStringList.Create;
+  try
+    for idx:=0 to len-1 do begin
+      tmpFT:=TAGeoFeature(FFeatureList.Items[idx]);
+      case TAGeoFeatures(tmpFT).ClassName of
+        'TAGeoPointGeometry':begin
+          with TAGeoPointGeometry(tmpFT) do lines.Add(Format('%d,%3.8f,%3.8f,%s',[idx,X,Y,LabelText]));
+        end;
+        //其他几何类型
+      end;
+    end;
+    lines.SaveToFile(filename);
+  finally
+    lines.Free;
+  end;
 end;
 
 constructor TAGeoFeatures.Create;
