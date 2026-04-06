@@ -1393,6 +1393,7 @@ begin
     bestTM:=CurrentTileMatrixSet.BestFitTileMatrix(FScaleX);
     tile_idx:=bestTM.GetTileIndex(wmct_xy);
 
+    Canvas.Font.Color:=clBlack;
     Canvas.Pen.Color:=clNone;
     Canvas.Brush.Color:=clWhite;
     Canvas.Brush.Style:=bsSolid;
