@@ -975,7 +975,7 @@ procedure TTileViewer.MouseUp(Button:TMouseButton;Shift:TShiftState;X,Y:Integer)
 begin
   if Button in [mbMiddle, mbLeft] then begin
     FMovementEnabled:=false;
-    Paint;
+    Invalidate;
   end;
 end;
 
@@ -986,7 +986,7 @@ begin
     vec.x:=+(FMovementCursor.X-X)*FScaleX*CurrentTileMatrixSet.MeterPerPixel;
     vec.y:=-(FMovementCursor.Y-Y)*FScaleY*CurrentTileMatrixSet.MeterPerPixel;
     PanToPoint(FMovementCenter+vec);
-    Paint;
+    Invalidate;
   end;
   if ShowInfo then begin
     FMouseCursor.x:=X;
@@ -999,7 +999,7 @@ procedure TTileViewer.MouseWheel(Sender: TObject; Shift: TShiftState; WheelDelta
 begin
   if WheelDelta>0 then Zoom(CursorToLocation(MousePos.X,MousePos.Y),0.8)
   else Zoom(CursorToLocation(MousePos.X,MousePos.Y),1.25);
-  Paint;
+  Invalidate;
 end;
 
 procedure TTileViewer.ViewResize(Sender:TObject);
@@ -1007,7 +1007,7 @@ begin
   ProportionCorrection;
   CoordinateCorrection;
   if FAutoFetchTile then ShowTiles;
-  Paint;
+  Invalidate;
 end;
 
 function TTileViewer.TileVisible(ATile:TTile):Boolean;
@@ -1519,7 +1519,7 @@ end;
 
 procedure TTileViewer.Refresh;
 begin
-  Paint;
+  Invalidate;
 end;
 
 procedure TTileViewer.ZoomToWorld;
@@ -1812,6 +1812,7 @@ begin
 
   MultiDownloadWarning:=1000;
   MultiDownloadFatal:=10000;
+  DoubleBuffered:=true;
 end;
 
 destructor TTileViewer.Destroy;
