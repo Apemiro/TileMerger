@@ -5,7 +5,7 @@ unit tile_merger_poi_client;
 interface
 
 uses
-  Classes, SysUtils, tile_merger_feature;
+  Classes, SysUtils, tile_merger_feature, fphttpclient, ssockets, sslsockets, fpopenssl;
 
 type
 
@@ -20,9 +20,13 @@ type
     FTitle:string;
     FUrl:string;
     FPoi:TAGeoPointGeometry;
+    FStatusCode:integer;
+    FErrorInfo:String;
     FStartTime:TDateTime;
+    FWaitMsBeforeRequest:integer;
   public
     procedure CheckURI(Sender:TObject; const ASrc:String; var ADest:String);
+    Procedure SocketHandler(Sender:TObject; const UseSSL:Boolean; out AHandler:TSocketHandler);
     procedure FetchInit;
     procedure FetchDone;
     procedure Execute; override;
@@ -48,10 +52,14 @@ type
     property Position:Integer read FPosition write FPosition;
     property TaskSize:Integer read GetTaskSize;
     property OnProgress:TPOISearchTaskProgressEvent read FOnProgress write FOnProgress;
+  public
+    procedure FirstThread;
+    procedure NextThread;
+    function CurrentThread:TPOISearchThread;
   end;
 
 implementation
-uses tile_merger_projection, URIParser, fpjson, fphttpclient, debugline;
+uses tile_merger_projection, URIParser, fpjson, debugline;
 
 
 function fetch_poi_result_to_str(fetchresult:TFetchPOIResult):string;
@@ -79,6 +87,16 @@ begin
    end
 end;
 
+Procedure TPOISearchThread.SocketHandler(Sender:TObject; const UseSSL:Boolean; out AHandler:TSocketHandler);
+var SSLHandler:TSSLSocketHandler;
+begin
+  if UseSSL then begin
+    SSLHandler:=TSSLSocketHandler.Create;
+    SSLHandler.SSLType:=stTLSv1_2;
+    AHandler:=SSLHandler;
+  end else AHandler:=nil;
+end;
+
 procedure TPOISearchThread.FetchInit;
 begin
   FFetchResult:=fprError;
@@ -101,7 +119,10 @@ begin
     fprSuccess: poi_wkt:=FPoi.WKT;
     else poi_wkt:='';
   end;
-  Form_Debug.AddMessage('['+DateTimeToStr(Now)+']  '+FTitle+'  '+fetch_poi_result_to_str(FFetchResult)+'  '+poi_wkt);
+  case FFetchResult of
+    fprFail: Form_Debug.AddMessage('['+DateTimeToStr(Now)+']  '+FTitle+'  '+fetch_poi_result_to_str(FFetchResult)+'  '+IntToStr(FStatusCode)+' '+FErrorInfo);
+    else Form_Debug.AddMessage('['+DateTimeToStr(Now)+']  '+FTitle+'  '+fetch_poi_result_to_str(FFetchResult)+'  '+poi_wkt);
+  end;
   //Form_Debug.AddMessage(Format('%d/%d',[FOwner.Position, FOwner.TaskSize]));
   FPoi:=nil; //几何结构已经传递给Features
 end;
@@ -115,6 +136,7 @@ var content:TMemoryStream;
     httpclient:TFPHTTPClient;
 
 begin
+  sleep(FWaitMsBeforeRequest);
   Synchronize(@FetchInit);
   httpclient:=TFPHTTPClient.Create(nil);
   content:=TMemoryStream.Create;
@@ -123,16 +145,18 @@ begin
     httpclient.KeepConnection:=false;
     httpclient.AllowRedirect:=true;
     httpclient.OnRedirect:=@CheckURI;
+    httpclient.OnGetSocketHandler:=@SocketHandler;
     httpclient.AddHeader('User-Agent', poi_ua);
     try
       content.Clear;
       httpclient.Get(FUrl, content);
     except
-      //on E:Exception do begin
-      //  ShowMessage(Format('Error %s: %s',[E.ClassName, E.Message]));
-      //end;
+      on E:Exception do begin
+        FErrorInfo:=Format('Error %s: %s',[E.ClassName, E.Message]);
+      end;
     end;
-    if httpclient.ResponseStatusCode<>200 then exit;
+    FStatusCode:=httpclient.ResponseStatusCode;
+    if FStatusCode<>200 then exit;
     FFetchResult:=fprFmtError;
     if content.Size=0 then exit;
 
@@ -162,11 +186,14 @@ end;
 
 constructor TPOISearchThread.Create(aOwner:TPOISearchTask; aUrl:string; aTitle:string);
 begin
-  inherited Create(false);
+  inherited Create(true);
   FTitle:=aTitle;
   FUrl:=aUrl;
   FPoi:=nil;
   FOwner:=aOwner;
+  FWaitMsBeforeRequest:=0;
+  FStatusCode:=200;
+  FErrorInfo:='';
 end;
 
 
@@ -185,6 +212,8 @@ end;
 constructor TPOISearchTask.Create(aStrings:TStrings; aUrlTemplate:string; aFeatures:TAGeoFeatures; ProgressEvent:TPOISearchTaskProgressEvent=nil);
 var idx:integer;
     search_key:string;
+    thd:TPOISearchThread;
+    waiting_ms:integer;
 begin
   inherited Create;
   FSearchEntries:=TStringList.Create;
@@ -196,9 +225,14 @@ begin
 
   idx:=0;
   Position:=0;
+  waiting_ms:=0;
   for search_key in FSearchEntries do begin
-    FSearchEntries.Objects[idx]:=TPOISearchThread.Create(Self, GetSearchURL(search_key), search_key);
+    thd:=TPOISearchThread.Create(Self, GetSearchURL(search_key), search_key);
+    FSearchEntries.Objects[idx]:=thd;
+    thd.FWaitMsBeforeRequest:=waiting_ms;
+    thd.Start;
     inc(idx);
+    inc(waiting_ms, 50);
   end;
 
 end;
@@ -215,6 +249,23 @@ begin
   FSearchEntries.Free;
   inherited Destroy;
 end;
+
+procedure TPOISearchTask.FirstThread;
+begin
+  FPosition:=0;
+end;
+
+procedure TPOISearchTask.NextThread;
+begin
+  FPosition:=(FPosition+1) mod FSearchEntries.Count;
+end;
+
+function TPOISearchTask.CurrentThread:TPOISearchThread;
+begin
+  result:=TPOISearchThread(FSearchEntries.Objects[FPosition]);
+end;
+
+
 
 
 end.

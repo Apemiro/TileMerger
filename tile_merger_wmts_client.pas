@@ -1102,14 +1102,29 @@ begin
   tmpService.DisplayName:='天地图全国';
 
   tmpService:=TWMTS_Service.Create;
+  tmpService.LoadFromManifestXml('https://t0.tianditu.gov.cn/cia_w/wmts?request=GetCapabilities&service=wmts', tmpServiceConfig);
+  FServiceList.Add(tmpService);
+  tmpService.DisplayName:='天地图全国 影像注记';
+
+  tmpService:=TWMTS_Service.Create;
   tmpService.LoadFromManifestXml('https://t0.tianditu.gov.cn/vec_w/wmts?request=GetCapabilities&service=wmts', tmpServiceConfig);
   FServiceList.Add(tmpService);
   tmpService.DisplayName:='天地图全国 矢量底图';
 
   tmpService:=TWMTS_Service.Create;
+  tmpService.LoadFromManifestXml('https://t0.tianditu.gov.cn/cva_w/wmts?request=GetCapabilities&service=wmts', tmpServiceConfig);
+  FServiceList.Add(tmpService);
+  tmpService.DisplayName:='天地图全国 矢量注记';
+
+  tmpService:=TWMTS_Service.Create;
   tmpService.LoadFromManifestXml('https://t0.tianditu.gov.cn/ter_w/wmts?request=GetCapabilities&service=wmts', tmpServiceConfig);
   FServiceList.Add(tmpService);
   tmpService.DisplayName:='天地图全国 地形晕渲';
+
+  tmpService:=TWMTS_Service.Create;
+  tmpService.LoadFromManifestXml('https://t0.tianditu.gov.cn/cta_w/wmts?request=GetCapabilities&service=wmts', tmpServiceConfig);
+  FServiceList.Add(tmpService);
+  tmpService.DisplayName:='天地图全国 地形注记';
 
 
   //本地XML测试在拆分LoadFromManifestXml后测试
