@@ -90,11 +90,17 @@ end;
 Procedure TPOISearchThread.SocketHandler(Sender:TObject; const UseSSL:Boolean; out AHandler:TSocketHandler);
 var SSLHandler:TSSLSocketHandler;
 begin
+  {$ifdef WINDOWS}
   if UseSSL then begin
     SSLHandler:=TSSLSocketHandler.Create;
     SSLHandler.SSLType:=stTLSv1_2;
     AHandler:=SSLHandler;
   end else AHandler:=nil;
+  {$else}
+  //MacOS暂时没有不解决
+  //需要：uses sslbase,
+  //已知问题：'ESSLSocketError' with message: Cannot create a X509 certificate without SLL support
+  {$endif}
 end;
 
 procedure TPOISearchThread.FetchInit;

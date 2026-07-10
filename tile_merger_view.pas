@@ -1214,6 +1214,7 @@ begin
   if len=0 then exit;
 
   //统一绘制图形
+  //错误：MacOS不能正确绘制图形，但是标注可以显示
   Canvas.Brush.Color:=clRed;
   Canvas.Brush.Style:=bsSolid;
   Canvas.Pen.Color:=clBlack;

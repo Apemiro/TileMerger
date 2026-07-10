@@ -115,7 +115,7 @@ var filename:string;
     jData, jItem:TJSONData;
     lines:TMemoryStream;
 begin
-  filename:='TilesCache'+DirectorySeparator+'__server_manifest'+DirectorySeparator+'TileMergerOptions.json';
+  filename:=ProgramPath+'TilesCache'+DirectorySeparator+'__server_manifest'+DirectorySeparator+'TileMergerOptions.json';
   if FileExists(filename) then begin
     lines:=TMemoryStream.Create;
     try
@@ -146,7 +146,7 @@ var filename:string;
     jObj:TJSONObject;
     lines:TStringList;
 begin
-  filename:='TilesCache'+DirectorySeparator+'__server_manifest'+DirectorySeparator+'TileMergerOptions.json';
+  filename:=ProgramPath+'TilesCache'+DirectorySeparator+'__server_manifest'+DirectorySeparator+'TileMergerOptions.json';
   ForceDirectories('__server_manifest');
   jObj:=TJSONObject.Create;
   lines:=TStringList.Create;
