@@ -3,9 +3,9 @@ program TileMerger;
 {$mode objfpc}{$H+}
 
 uses
-  {$IFDEF UNIX}{$IFDEF UseCThreads}
+  {$IFDEF UNIX}
   cthreads,
-  {$ENDIF}{$ENDIF}
+  {$ENDIF}
   Interfaces, // this includes the LCL widgetset
   Forms, lazcontrols, tile_merger_main, tile_merger_wmts_client, debugline,
   exporttiff, tile_merger_tiff, tile_merger_projection, tile_merger_feature,

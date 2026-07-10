@@ -247,7 +247,7 @@ type
   end;
 
 implementation
-uses debugline, math, LazUTF8;
+uses debugline, math, LazUTF8, tile_merger_main;
 
 function fetch_tile_result_to_str(fetchresult:TFetchTileResult):string;
 begin
@@ -411,7 +411,7 @@ begin
   normTileIndex:=ATileMatrix.TileMatrixSet.Projection.GetWMTSTileIndexNormalized(ATileMatrix.LeftTop, ATileMatrix.Scale, ATileMatrix.Width, ATileMatrix.Height, Centroid);
   normCol:=normTileIndex.col;
   normRow:=normTileIndex.row;
-  FCachePath:='TilesCache';
+  FCachePath:=ProgramPath+'TilesCache';
 
 end;
 
@@ -693,7 +693,7 @@ constructor TTileViewerPool.Create(AOwner:TObject);
 begin
   inherited Create;
   FTileList:=TList.Create;
-  FCachePath:='TilesCache';
+  FCachePath:=ProgramPath+'TilesCache';
   PTileViewer:=AOwner;
 end;
 
@@ -753,7 +753,7 @@ begin
   if FAutoFetchTile then begin
     FTilePool.Clear;
     ShowTiles;
-    Paint;
+    Invalidate;//Paint;
   end;
   PanToPoint(CurrentTileMatrixSet.Projection.LatlongToXY(OldCanvasLatLong));
 end;
@@ -871,7 +871,7 @@ procedure TTileViewer.MouseUp(Button:TMouseButton;Shift:TShiftState;X,Y:Integer)
 begin
   if Button in [mbMiddle, mbLeft] then begin
     FMovementEnabled:=false;
-    Paint;
+    Invalidate;//Paint;
   end;
 end;
 
@@ -882,7 +882,7 @@ begin
     vec.x:=+(FMovementCursor.X-X)*FScaleX*CurrentTileMatrixSet.MeterPerPixel;
     vec.y:=-(FMovementCursor.Y-Y)*FScaleY*CurrentTileMatrixSet.MeterPerPixel;
     PanToPoint(FMovementCenter+vec);
-    Paint;
+    Invalidate;//Paint;
   end;
   if ShowInfo then begin
     FMouseCursor.x:=X;
@@ -895,7 +895,7 @@ procedure TTileViewer.MouseWheel(Sender: TObject; Shift: TShiftState; WheelDelta
 begin
   if WheelDelta>0 then Zoom(CursorToLocation(MousePos.X,MousePos.Y),0.8)
   else Zoom(CursorToLocation(MousePos.X,MousePos.Y),1.25);
-  Paint;
+  Invalidate;//Paint;
 end;
 
 procedure TTileViewer.ViewResize(Sender:TObject);
@@ -903,7 +903,7 @@ begin
   ProportionCorrection;
   CoordinateCorrection;
   if FAutoFetchTile then ShowTiles;
-  Paint;
+  Invalidate;//Paint;
 end;
 
 function TTileViewer.TileVisible(ATile:TTile):Boolean;
@@ -1350,7 +1350,7 @@ end;
 
 procedure TTileViewer.Refresh;
 begin
-  Paint;
+  Invalidate;//Paint;
 end;
 
 procedure TTileViewer.ZoomToWorld;
@@ -1597,6 +1597,7 @@ begin
   if tmpTile.TileMatrix<>PBestTileMatrix then exit;
   PaintTile(tmpTile);
   PaintScale;
+  Invalidate;
 end;
 
 constructor TTileViewer.Create(AOwner:TComponent);
