@@ -272,7 +272,7 @@ type
   end;
 
 implementation
-uses debugline, math, LazUTF8, Dialogs, Forms, form_options;
+uses debugline, math, LazUTF8, Dialogs, Forms, form_options, tile_merger_main;
 
 function fetch_tile_result_to_str(fetchresult:TFetchTileResult):string;
 begin
@@ -436,7 +436,7 @@ begin
   normTileIndex:=ATileMatrix.TileMatrixSet.Projection.GetWMTSTileIndexNormalized(ATileMatrix.LeftTop, ATileMatrix.Scale, ATileMatrix.Width, ATileMatrix.Height, Centroid);
   normCol:=normTileIndex.col;
   normRow:=normTileIndex.row;
-  FCachePath:='TilesCache';
+  FCachePath:=ProgramPath+'TilesCache';
 
 end;
 
@@ -765,7 +765,7 @@ begin
   inherited Create;
   FTileList:=TList.Create;
   FThreadList:=TList.Create;
-  FCachePath:='TilesCache';
+  FCachePath:=ProgramPath+'TilesCache';
   PTileViewer:=AOwner;
   MaxDownloadThread:=100;
   FRunning:=0;
@@ -857,7 +857,7 @@ begin
   if FAutoFetchTile then begin
     FTilePool.Clear;
     ShowTiles;
-    Paint;
+    Invalidate;//Paint;
   end;
   PanToPoint(CurrentTileMatrixSet.Projection.LatlongToXY(OldCanvasLatLong));
 end;
@@ -1782,6 +1782,7 @@ begin
   if tmpTile.TileMatrix<>PBestTileMatrix then exit;
   PaintTile(tmpTile);
   PaintScale;
+  Invalidate;
 end;
 
 constructor TTileViewer.Create(AOwner:TComponent);

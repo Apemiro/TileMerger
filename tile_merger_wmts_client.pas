@@ -8,7 +8,7 @@ uses
   {$ifdef UNIX}
   cthreads,
   {$endif}
-  Classes, SysUtils, fphttpclient, openssl, DOM, XMLRead,
+  Classes, SysUtils, fphttpclient, openssl, opensslsockets, DOM, XMLRead,
   Dialogs, tile_merger_projection, tile_merger_feature;
 
 type
@@ -258,7 +258,7 @@ var
   ServiceConfig_Default:TWMTS_Service_Config;
 
 implementation
-uses tile_merger_view, math, dateutils;
+uses tile_merger_view, math, dateutils, tile_merger_main;
 
 function DateTimeToISO8601(dt:TDateTime):string;
 begin
@@ -742,7 +742,7 @@ var manifest:TMemoryStream;
 begin
   if ServiceConfig.ua_preference<>'' then UserAgent := ServiceConfig.ua_preference
   else UserAgent:='ArcGIS Client Using WinInet';
-  archive_xml:='TilesCache/__server_manifest/'+EncodeURLElement(aUrl)+'.xml';
+  archive_xml:=ProgramPath+'TilesCache/__server_manifest/'+EncodeURLElement(aUrl)+'.xml';
   FXmlURL:=aUrl;
   manifest:=TMemoryStream.Create;
   try
@@ -905,8 +905,8 @@ begin
       xml.Free;
     end;
   finally
-    ForceDirectories('TilesCache/__server_manifest');
-    manifest.SaveToFile('TilesCache/__server_manifest/'+EncodeURLElement(aUrl)+'.xml');
+    ForceDirectories(ProgramPath+'TilesCache/__server_manifest');
+    manifest.SaveToFile(ProgramPath+'TilesCache/__server_manifest/'+EncodeURLElement(aUrl)+'.xml');
     manifest.Free;
     FConfig:=ServiceConfig;
   end;
