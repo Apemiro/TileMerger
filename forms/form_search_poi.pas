@@ -5,7 +5,8 @@ unit form_search_poi;
 interface
 
 uses
-  Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, StdCtrls, URIParser;
+  Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, StdCtrls,
+  ComCtrls, URIParser;
 
 type
 
@@ -13,8 +14,10 @@ type
 
   TForm_PoiServer = class(TForm)
     Button_Search: TButton;
+    CheckBox_Preserve: TCheckBox;
     Edit_CityParam: TEdit;
     Memo_PoiSearchEntries: TMemo;
+    ProgressBar_PoiProcess: TProgressBar;
     procedure Button_SearchClick(Sender: TObject);
   private
 
@@ -51,13 +54,15 @@ end;
 
 procedure TForm_PoiServer.POISearchTaskProgress(Pos, Max:Integer);
 begin
+  ProgressBar_PoiProcess.Max:=Max;
+  ProgressBar_PoiProcess.Position:=Pos;
   if Pos=Max then FormTileMerger.UpdateFeatureListEntry;
 end;
 
 procedure TForm_PoiServer.Button_SearchClick(Sender: TObject);
-const poi_url = 'http://api.map.baidu.com/geocoding/v3/';
+const poi_url = 'https://api.map.baidu.com/geocoding/v3/';
 begin
-  WMTS_Client.FeatureLayers[0].Features.Clear;
+  if CheckBox_Preserve.Checked then WMTS_Client.FeatureLayers[0].Features.Clear;
   TPOISearchTask.Create(
     Memo_PoiSearchEntries.Lines,
     poi_url+'?address='+Edit_CityParam.Text+'%s&output=json&ret_coordtype=gcj02ll&ak=F3JisKBLlCzkVsF74ZIUmtJLYvHWjD8L',

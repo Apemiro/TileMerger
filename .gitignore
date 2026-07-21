@@ -7,3 +7,6 @@
 *.dll
 TileMerger
 /TilesCache
+TileMerger.app/*
+*.dylib
+.DS_Store/*

@@ -6,7 +6,7 @@ interface
 
 uses
   {$ifdef UNIX}
-  cthreads,
+  cthreads, opensslsockets,
   {$endif}
   Classes, SysUtils, fphttpclient, openssl, DOM, XMLRead,
   Dialogs, tile_merger_projection, tile_merger_feature;
@@ -164,6 +164,7 @@ type
     destructor Destroy; override;
   end;
 
+  TWMTS_ProtocolMode = (pmAuto=0, pmHTTP=1, pmHTTPS=2);
   TWMTS_Service_Config = record
     url_replacement:record
       old_pattern:string;
@@ -172,6 +173,7 @@ type
     token:string;
     ua_preference:string;//empty means ArcGIS UA (assign when creating server)
     fixed_meter_per_pixel:TGeoCoord;//0 means automatical
+    protocol_mode:TWMTS_ProtocolMode;
   end;
 
   TWMTS_Service = class
@@ -256,7 +258,7 @@ var
   ServiceConfig_Default:TWMTS_Service_Config;
 
 implementation
-uses tile_merger_view, math, dateutils;
+uses tile_merger_view, math, dateutils, tile_merger_main;
 
 function DateTimeToISO8601(dt:TDateTime):string;
 begin
@@ -740,7 +742,7 @@ var manifest:TMemoryStream;
 begin
   if ServiceConfig.ua_preference<>'' then UserAgent := ServiceConfig.ua_preference
   else UserAgent:='ArcGIS Client Using WinInet';
-  archive_xml:='TilesCache/__server_manifest/'+EncodeURLElement(aUrl)+'.xml';
+  archive_xml:=ProgramPath+'TilesCache/__server_manifest/'+EncodeURLElement(aUrl)+'.xml';
   FXmlURL:=aUrl;
   manifest:=TMemoryStream.Create;
   try
@@ -789,6 +791,11 @@ begin
         content_node:=content_node.FindNode('ows:Value');
         if content_node.FirstChild.NodeValue='KVP' then
           FKvpUrl:=kvp_url+'Service=WMTS&request=GetTile&Version={Version}&Layer={Layer}&Style={Style}&TileMatrixSet={TileMatrixSet}&TileMatrix={TileMatrix}&TileRow={TileRow}&TileCol={TileCol}&Format={Format}&tk={Token}';
+        case ServiceConfig.protocol_mode of
+          pmAuto:;
+          pmHTTP:FKvpUrl:=StringReplace(FKvpUrl, 'https://', 'http://',[rfIgnoreCase]);
+          pmHTTPS:FKvpUrl:=StringReplace(FKvpUrl, 'http://', 'https://',[rfIgnoreCase]);
+        end;
       end;
       //内容列表
       node:=xml.DocumentElement;
@@ -898,8 +905,8 @@ begin
       xml.Free;
     end;
   finally
-    ForceDirectories('TilesCache/__server_manifest');
-    manifest.SaveToFile('TilesCache/__server_manifest/'+EncodeURLElement(aUrl)+'.xml');
+    ForceDirectories(ProgramPath+'TilesCache/__server_manifest');
+    manifest.SaveToFile(ProgramPath+'TilesCache/__server_manifest/'+EncodeURLElement(aUrl)+'.xml');
     manifest.Free;
     FConfig:=ServiceConfig;
   end;
@@ -1042,6 +1049,7 @@ begin
   tmpServiceConfig.url_replacement.new_pattern:='//wayback-a.';
   tmpServiceConfig.token:='';
   tmpServiceConfig.fixed_meter_per_pixel:=0;
+  tmpServiceConfig.protocol_mode:=pmAuto;
   tmpService:=TWMTS_Service.Create;
   tmpService.LoadFromManifestXml(_wayback_, tmpServiceConfig);
   FServiceList.Add(tmpService);
@@ -1094,14 +1102,29 @@ begin
   tmpService.DisplayName:='天地图全国';
 
   tmpService:=TWMTS_Service.Create;
+  tmpService.LoadFromManifestXml('https://t0.tianditu.gov.cn/cia_w/wmts?request=GetCapabilities&service=wmts', tmpServiceConfig);
+  FServiceList.Add(tmpService);
+  tmpService.DisplayName:='天地图全国 影像注记';
+
+  tmpService:=TWMTS_Service.Create;
   tmpService.LoadFromManifestXml('https://t0.tianditu.gov.cn/vec_w/wmts?request=GetCapabilities&service=wmts', tmpServiceConfig);
   FServiceList.Add(tmpService);
   tmpService.DisplayName:='天地图全国 矢量底图';
 
   tmpService:=TWMTS_Service.Create;
+  tmpService.LoadFromManifestXml('https://t0.tianditu.gov.cn/cva_w/wmts?request=GetCapabilities&service=wmts', tmpServiceConfig);
+  FServiceList.Add(tmpService);
+  tmpService.DisplayName:='天地图全国 矢量注记';
+
+  tmpService:=TWMTS_Service.Create;
   tmpService.LoadFromManifestXml('https://t0.tianditu.gov.cn/ter_w/wmts?request=GetCapabilities&service=wmts', tmpServiceConfig);
   FServiceList.Add(tmpService);
   tmpService.DisplayName:='天地图全国 地形晕渲';
+
+  tmpService:=TWMTS_Service.Create;
+  tmpService.LoadFromManifestXml('https://t0.tianditu.gov.cn/cta_w/wmts?request=GetCapabilities&service=wmts', tmpServiceConfig);
+  FServiceList.Add(tmpService);
+  tmpService.DisplayName:='天地图全国 地形注记';
 
 
   //本地XML测试在拆分LoadFromManifestXml后测试
@@ -1123,7 +1146,7 @@ begin
   tmpServiceConfig.token:='0e2c50def624b69b1dcb67f43f353c49';
   tmpServiceConfig.fixed_meter_per_pixel:=0.0002803138; //没招了就这样吧
   tmpServiceConfig.ua_preference:='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36';
-
+  tmpServiceConfig.protocol_mode:=pmHTTPS;
 
   tmpService:=TWMTS_Service.Create;
   tmpService.LoadFromManifestXml('https://s0.fjmap.net/img_fj_2012/wmts', tmpServiceConfig);
@@ -1141,17 +1164,17 @@ begin
   tmpService.DisplayName:='天地图福建 2019';
 
   tmpService:=TWMTS_Service.Create;
-  tmpService.LoadFromManifestXml('http://s0.fjmap.net/img_fj_2024_his/wmts', tmpServiceConfig);
+  tmpService.LoadFromManifestXml('https://s0.fjmap.net/img_fj_2024_his/wmts', tmpServiceConfig);
   FServiceList.Add(tmpService);
   tmpService.DisplayName:='天地图福建 2024';
 
   tmpService:=TWMTS_Service.Create;
-  tmpService.LoadFromManifestXml('http://s0.fjmap.net/img_fj_2025_his/wmts', tmpServiceConfig);
+  tmpService.LoadFromManifestXml('https://s0.fjmap.net/img_fj_2025_his/wmts', tmpServiceConfig);
   FServiceList.Add(tmpService);
   tmpService.DisplayName:='天地图福建 2025';
 
   tmpService:=TWMTS_Service.Create;
-  tmpService.LoadFromManifestXml('http://s0.fjmap.net/img_fj_2026_his/wmts', tmpServiceConfig);
+  tmpService.LoadFromManifestXml('https://s0.fjmap.net/img_fj_2026_his/wmts', tmpServiceConfig);
   FServiceList.Add(tmpService);
   tmpService.DisplayName:='天地图福建 2026';
 
@@ -1167,32 +1190,32 @@ begin
   tmpService.DisplayName:='天地图福建 矢量注记 2025';
 
   tmpService:=TWMTS_Service.Create;
-  tmpService.LoadFromManifestXml('http://s0.fjmap.net/fc_region/wmts', tmpServiceConfig);
+  tmpService.LoadFromManifestXml('https://s0.fjmap.net/fc_region/wmts', tmpServiceConfig);
   FServiceList.Add(tmpService);
   tmpService.DisplayName:='天地图福建 行政区划';
 
   tmpService:=TWMTS_Service.Create;
-  tmpService.LoadFromManifestXml('http://s0.fjmap.net/fc_diming/wmts', tmpServiceConfig);
+  tmpService.LoadFromManifestXml('https://s0.fjmap.net/fc_diming/wmts', tmpServiceConfig);
   FServiceList.Add(tmpService);
   tmpService.DisplayName:='天地图福建 地名分层';
 
   tmpService:=TWMTS_Service.Create;
-  tmpService.LoadFromManifestXml('http://s0.fjmap.net/fc_road/wmts', tmpServiceConfig);
+  tmpService.LoadFromManifestXml('https://s0.fjmap.net/fc_road/wmts', tmpServiceConfig);
   FServiceList.Add(tmpService);
   tmpService.DisplayName:='天地图福建 交通分层';
 
   tmpService:=TWMTS_Service.Create;
-  tmpService.LoadFromManifestXml('http://s0.fjmap.net/fc_regionanno/wmts', tmpServiceConfig);
+  tmpService.LoadFromManifestXml('https://s0.fjmap.net/fc_regionanno/wmts', tmpServiceConfig);
   FServiceList.Add(tmpService);
   tmpService.DisplayName:='天地图福建 交通注记';
 
   tmpService:=TWMTS_Service.Create;
-  tmpService.LoadFromManifestXml('http://s0.fjmap.net/fc_water/wmts', tmpServiceConfig);
+  tmpService.LoadFromManifestXml('https://s0.fjmap.net/fc_water/wmts', tmpServiceConfig);
   FServiceList.Add(tmpService);
   tmpService.DisplayName:='天地图福建 水系分层';
 
   tmpService:=TWMTS_Service.Create;
-  tmpService.LoadFromManifestXml('http://s0.fjmap.net/fc_wateranno/wmts', tmpServiceConfig);
+  tmpService.LoadFromManifestXml('https://s0.fjmap.net/fc_wateranno/wmts', tmpServiceConfig);
   FServiceList.Add(tmpService);
   tmpService.DisplayName:='天地图福建 水系注记';
 

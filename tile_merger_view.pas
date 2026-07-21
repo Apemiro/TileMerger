@@ -272,7 +272,7 @@ type
   end;
 
 implementation
-uses debugline, math, LazUTF8, Dialogs, Forms, form_options;
+uses debugline, math, LazUTF8, Dialogs, Forms, form_options, tile_merger_main;
 
 function fetch_tile_result_to_str(fetchresult:TFetchTileResult):string;
 begin
@@ -436,7 +436,7 @@ begin
   normTileIndex:=ATileMatrix.TileMatrixSet.Projection.GetWMTSTileIndexNormalized(ATileMatrix.LeftTop, ATileMatrix.Scale, ATileMatrix.Width, ATileMatrix.Height, Centroid);
   normCol:=normTileIndex.col;
   normRow:=normTileIndex.row;
-  FCachePath:='TilesCache';
+  FCachePath:=ProgramPath+'TilesCache';
 
 end;
 
@@ -765,7 +765,7 @@ begin
   inherited Create;
   FTileList:=TList.Create;
   FThreadList:=TList.Create;
-  FCachePath:='TilesCache';
+  FCachePath:=ProgramPath+'TilesCache';
   PTileViewer:=AOwner;
   MaxDownloadThread:=100;
   FRunning:=0;
@@ -857,7 +857,7 @@ begin
   if FAutoFetchTile then begin
     FTilePool.Clear;
     ShowTiles;
-    Paint;
+    Invalidate;//Paint;
   end;
   PanToPoint(CurrentTileMatrixSet.Projection.LatlongToXY(OldCanvasLatLong));
 end;
@@ -975,31 +975,35 @@ procedure TTileViewer.MouseUp(Button:TMouseButton;Shift:TShiftState;X,Y:Integer)
 begin
   if Button in [mbMiddle, mbLeft] then begin
     FMovementEnabled:=false;
-    Paint;
+    Invalidate;
   end;
 end;
 
 procedure TTileViewer.MouseMove(Shift: TShiftState; X, Y: Integer);
 var vec:TGeoPoint;
+    upd:Boolean;
 begin
+  upd:=false;
   if FMovementEnabled then begin
     vec.x:=+(FMovementCursor.X-X)*FScaleX*CurrentTileMatrixSet.MeterPerPixel;
     vec.y:=-(FMovementCursor.Y-Y)*FScaleY*CurrentTileMatrixSet.MeterPerPixel;
     PanToPoint(FMovementCenter+vec);
-    Paint;
+    upd:=true;
   end;
   if ShowInfo then begin
     FMouseCursor.x:=X;
     FMouseCursor.y:=Y;
     PaintInfo;
+    upd:=true;
   end;
+  if upd then Invalidate;
 end;
 
 procedure TTileViewer.MouseWheel(Sender: TObject; Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
 begin
   if WheelDelta>0 then Zoom(CursorToLocation(MousePos.X,MousePos.Y),0.8)
   else Zoom(CursorToLocation(MousePos.X,MousePos.Y),1.25);
-  Paint;
+  Invalidate;
 end;
 
 procedure TTileViewer.ViewResize(Sender:TObject);
@@ -1007,7 +1011,7 @@ begin
   ProportionCorrection;
   CoordinateCorrection;
   if FAutoFetchTile then ShowTiles;
-  Paint;
+  Invalidate;
 end;
 
 function TTileViewer.TileVisible(ATile:TTile):Boolean;
@@ -1214,6 +1218,7 @@ begin
   if len=0 then exit;
 
   //统一绘制图形
+  //错误：MacOS不能正确绘制图形，但是标注可以显示
   Canvas.Brush.Color:=clRed;
   Canvas.Brush.Style:=bsSolid;
   Canvas.Pen.Color:=clBlack;
@@ -1235,7 +1240,13 @@ begin
             tmpPoint:=LocationToCursor(gpXY.X, gpXY.Y);
             drawCanvasCircle(Canvas, tmpPoint, 4);
             }
-            with TAGeoPointGeometry(tmpFT) do tmpPoint:=LatLongToCanvasXY(X,Y);
+            with TAGeoPointGeometry(tmpFT) do begin
+              gpLL.X:=X;
+              gpLL.Y:=Y;
+              gpXY:=CurrentTileMatrixSet.Projection.LatlongToXY(gpLL);
+              tmpPoint:=LocationToCursor(gpXY.X,gpXY.Y);
+              //原本的LatLongToCursorXY在MacOS下为什么不行？
+            end;
             drawCanvasCircle(Canvas, tmpPoint, 4);
           end;
         'TAGeoPolyline':
@@ -1243,11 +1254,23 @@ begin
             vlen:=TAGeoPolyline(tmpFT).CountVertex;
             if vlen>2 then begin
               TAGeoPolyline(tmpFT).SeekVertes(0);
-              with TAGeoPolyline(tmpFT) do oriPoint:=LatLongToCanvasXY(X,Y);
+              with TAGeoPolyline(tmpFT) do begin
+                gpLL.X:=X;
+                gpLL.Y:=Y;
+                gpXY:=CurrentTileMatrixSet.Projection.LatlongToXY(gpLL);
+                oriPoint:=LocationToCursor(gpXY.X,gpXY.Y);
+                //原本的LatLongToCursorXY在MacOS下为什么不行？
+              end;
               vidx:=1;
               while vidx<vlen do begin
                 TAGeoPolyline(tmpFT).SeekVertes(vidx);
-                with TAGeoPolyline(tmpFT) do tmpPoint:=LatLongToCanvasXY(X,Y);
+                with TAGeoPolyline(tmpFT) do begin
+                  gpLL.X:=X;
+                  gpLL.Y:=Y;
+                  gpXY:=CurrentTileMatrixSet.Projection.LatlongToXY(gpLL);
+                  tmpPoint:=LocationToCursor(gpXY.X,gpXY.Y);
+                  //原本的LatLongToCursorXY在MacOS下为什么不行？
+                end;
                 drawCanvasSegment(Canvas, oriPoint, tmpPoint, 1);
                 oriPoint:=tmpPoint;
                 inc(vidx);
@@ -1520,7 +1543,8 @@ end;
 
 procedure TTileViewer.Refresh;
 begin
-  Paint;
+  PBestTileMatrix:=FCurrentTileMatrixSet.BestFitTileMatrix(FScaleX);
+  Invalidate;
 end;
 
 procedure TTileViewer.ZoomToWorld;
@@ -1783,6 +1807,7 @@ begin
   if tmpTile.TileMatrix<>PBestTileMatrix then exit;
   PaintTile(tmpTile);
   PaintScale;
+  Invalidate;
 end;
 
 constructor TTileViewer.Create(AOwner:TComponent);
@@ -1813,6 +1838,7 @@ begin
 
   MultiDownloadWarning:=1000;
   MultiDownloadFatal:=10000;
+  DoubleBuffered:=true;
 end;
 
 destructor TTileViewer.Destroy;

@@ -7,14 +7,16 @@ interface
 uses
   Classes, SysUtils, FileUtil, SpinEx, Forms, Controls, Graphics, Dialogs,
   StdCtrls, ExtCtrls, Spin, ComCtrls, Menus,
-  {$ifdef windows}
+  {$if defined(windows)}
   Windows,
+  {$elseif defined(Darwin)}
+  LCLIntf, MacOSAll,
   {$endif}
   tile_merger_view, tile_merger_wmts_client, CalendarFlow;
 
 const
   _appname_ = 'Apiglio TileMerger';
-  _version_ = '0.7.1';
+  _version_ = '0.7.3';
   _authors_ = 'Apiglio';
   _newline_ = {$ifdef windows}#13#10{$else}#10{$endif};
 
@@ -100,12 +102,50 @@ type
 var
   FormTileMerger: TFormTileMerger;
   WMTS_Client:TWMTS_Client;
+  ProgramPath:string;
 
 implementation
 uses debugline, exporttiff, form_search_poi, form_options, form_view_location,
      tile_merger_feature, tile_merger_projection;
 
 {$R *.lfm}
+
+
+function GetSupportDir(Global:boolean): String;
+{$IFDEF DARWIN}
+const kMaxPath = 1024;
+var theError: OSErr;
+    theRef: FSRef;
+    pathBuffer: PChar;
+    FolderType: LongWord;
+{$ENDIF}
+begin
+    {$IFDEF DARWIN}
+    FolderType := kApplicationSupportFolderType;
+    theRef := Default(FSRef);
+    try
+        pathBuffer := Allocmem(kMaxPath);
+    except on exception
+        do exit;
+    end;
+
+    try
+        Fillchar(pathBuffer^, kMaxPath, #0);  // actually already done by allocmem
+        Fillchar(theRef, Sizeof(theRef), #0); // actually already done by Default();
+        if Global then theError := FSFindFolder(kLocalDomain, FolderType, kDontCreateFolder, theRef)
+        else theError := FSFindFolder(kUserDomain , FolderType, kDontCreateFolder, theRef);
+        if (pathBuffer <> nil) and (theError = noErr) then begin
+            theError := FSRefMakePath(theRef, pathBuffer, kMaxPath);
+            if theError = noErr then GetSupportDir := UTF8ToAnsi(StrPas(pathBuffer)) + '/' + ApplicationName + '/';
+        end;
+    finally
+        Freemem(pathBuffer);
+    end
+    {$ELSE}
+    GetSupportDir := '';
+    {$ENDIF}
+end;
+
 
 { TFormTileMerger }
 
@@ -162,7 +202,13 @@ end;
 
 procedure TFormTileMerger.MenuItem_DownloadCachePathClick(Sender: TObject);
 begin
+  {$if defined(WINDOWS)}
   ShellExecute(0,'open','explorer',pchar(FTileViewer.CachePath),nil,SW_NORMAL);
+  {$elseif defined(Darwin)}
+  OpenDocument(FTileViewer.CachePath);
+  {$else}
+
+  {$endif}
 end;
 
 procedure TFormTileMerger.MenuItem_DownloadExportClick(Sender: TObject);
@@ -520,7 +566,11 @@ begin
 end;
 
 initialization
+
+  ProgramPath:=GetSupportDir(false);
+  //ProgramPath:=ExtractFilePath(ParamStr(0));
   WMTS_Client:=TWMTS_Client.Create;
+
 
 finalization
   WMTS_Client.Free;
