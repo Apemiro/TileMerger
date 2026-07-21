@@ -6,9 +6,9 @@ interface
 
 uses
   {$ifdef UNIX}
-  cthreads,
+  cthreads, opensslsockets,
   {$endif}
-  Classes, SysUtils, fphttpclient, openssl, opensslsockets, DOM, XMLRead,
+  Classes, SysUtils, fphttpclient, openssl, DOM, XMLRead,
   Dialogs, tile_merger_projection, tile_merger_feature;
 
 type

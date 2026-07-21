@@ -111,15 +111,17 @@ uses debugline, exporttiff, form_search_poi, form_options, form_view_location,
 {$R *.lfm}
 
 
-function GetSupportDir(Global:boolean; FolderType:LongWord): String;
+function GetSupportDir(Global:boolean): String;
 {$IFDEF DARWIN}
 const kMaxPath = 1024;
 var theError: OSErr;
     theRef: FSRef;
     pathBuffer: PChar;
+    FolderType: LongWord;
 {$ENDIF}
 begin
     {$IFDEF DARWIN}
+    FolderType := kApplicationSupportFolderType;
     theRef := Default(FSRef);
     try
         pathBuffer := Allocmem(kMaxPath);
@@ -564,7 +566,8 @@ begin
 end;
 
 initialization
-  ProgramPath:=GetSupportDir(false, kApplicationSupportFolderType);
+
+  ProgramPath:=GetSupportDir(false);
   //ProgramPath:=ExtractFilePath(ParamStr(0));
   WMTS_Client:=TWMTS_Client.Create;
 
