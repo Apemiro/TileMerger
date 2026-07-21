@@ -16,7 +16,7 @@ uses
 
 const
   _appname_ = 'Apiglio TileMerger';
-  _version_ = '0.7.1';
+  _version_ = '0.7.3';
   _authors_ = 'Apiglio';
   _newline_ = {$ifdef windows}#13#10{$else}#10{$endif};
 

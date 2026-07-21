@@ -170,6 +170,7 @@ begin
     jData:=nil;
     jData:=GetJSON(content);
     res:=jData.FindPath('result');
+    if res=nil then exit;
     if res.JSONType<>jtObject then exit;
     poi:=TJSONObject(res);
     //poi内部不作异常检测了

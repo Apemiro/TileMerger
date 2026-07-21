@@ -981,18 +981,22 @@ end;
 
 procedure TTileViewer.MouseMove(Shift: TShiftState; X, Y: Integer);
 var vec:TGeoPoint;
+    upd:Boolean;
 begin
+  upd:=false;
   if FMovementEnabled then begin
     vec.x:=+(FMovementCursor.X-X)*FScaleX*CurrentTileMatrixSet.MeterPerPixel;
     vec.y:=-(FMovementCursor.Y-Y)*FScaleY*CurrentTileMatrixSet.MeterPerPixel;
     PanToPoint(FMovementCenter+vec);
-    Invalidate;
+    upd:=true;
   end;
   if ShowInfo then begin
     FMouseCursor.x:=X;
     FMouseCursor.y:=Y;
     PaintInfo;
+    upd:=true;
   end;
+  if upd then Invalidate;
 end;
 
 procedure TTileViewer.MouseWheel(Sender: TObject; Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
@@ -1236,7 +1240,13 @@ begin
             tmpPoint:=LocationToCursor(gpXY.X, gpXY.Y);
             drawCanvasCircle(Canvas, tmpPoint, 4);
             }
-            with TAGeoPointGeometry(tmpFT) do tmpPoint:=LatLongToCanvasXY(X,Y);
+            with TAGeoPointGeometry(tmpFT) do begin
+              gpLL.X:=X;
+              gpLL.Y:=Y;
+              gpXY:=CurrentTileMatrixSet.Projection.LatlongToXY(gpLL);
+              tmpPoint:=LocationToCursor(gpXY.X,gpXY.Y);
+              //原本的LatLongToCursorXY在MacOS下为什么不行？
+            end;
             drawCanvasCircle(Canvas, tmpPoint, 4);
           end;
         'TAGeoPolyline':
@@ -1244,11 +1254,23 @@ begin
             vlen:=TAGeoPolyline(tmpFT).CountVertex;
             if vlen>2 then begin
               TAGeoPolyline(tmpFT).SeekVertes(0);
-              with TAGeoPolyline(tmpFT) do oriPoint:=LatLongToCanvasXY(X,Y);
+              with TAGeoPolyline(tmpFT) do begin
+                gpLL.X:=X;
+                gpLL.Y:=Y;
+                gpXY:=CurrentTileMatrixSet.Projection.LatlongToXY(gpLL);
+                oriPoint:=LocationToCursor(gpXY.X,gpXY.Y);
+                //原本的LatLongToCursorXY在MacOS下为什么不行？
+              end;
               vidx:=1;
               while vidx<vlen do begin
                 TAGeoPolyline(tmpFT).SeekVertes(vidx);
-                with TAGeoPolyline(tmpFT) do tmpPoint:=LatLongToCanvasXY(X,Y);
+                with TAGeoPolyline(tmpFT) do begin
+                  gpLL.X:=X;
+                  gpLL.Y:=Y;
+                  gpXY:=CurrentTileMatrixSet.Projection.LatlongToXY(gpLL);
+                  tmpPoint:=LocationToCursor(gpXY.X,gpXY.Y);
+                  //原本的LatLongToCursorXY在MacOS下为什么不行？
+                end;
                 drawCanvasSegment(Canvas, oriPoint, tmpPoint, 1);
                 oriPoint:=tmpPoint;
                 inc(vidx);
@@ -1520,6 +1542,7 @@ end;
 
 procedure TTileViewer.Refresh;
 begin
+  PBestTileMatrix:=FCurrentTileMatrixSet.BestFitTileMatrix(FScaleX);
   Invalidate;
 end;
 
