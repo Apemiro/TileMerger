@@ -55,7 +55,8 @@ var
   FormViewLocation: TFormViewLocation;
 
 implementation
-uses tile_merger_main, tile_merger_projection;
+uses tile_merger_main,
+     tile_merger_projection;
 
 {$R *.lfm}
 

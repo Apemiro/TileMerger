@@ -60,7 +60,7 @@ begin
 end;
 
 procedure TForm_PoiServer.Button_SearchClick(Sender: TObject);
-const poi_url = 'https://api.map.baidu.com/geocoding/v3/';
+const poi_url = 'http://api.map.baidu.com/geocoding/v3/';
 begin
   if CheckBox_Preserve.Checked then WMTS_Client.FeatureLayers[0].Features.Clear;
   TPOISearchTask.Create(

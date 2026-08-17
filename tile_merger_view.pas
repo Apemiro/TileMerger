@@ -211,6 +211,7 @@ type
     property CanvasHeight:Double read GetCanvasHeight write SetCanvasHeight;
     property ScaleX:Double read FScaleX write FScaleX;
     property ScaleY:Double read FScaleY write FScaleY;
+    property MouseCursor:TPoint read FMouseCursor;
   protected
     procedure MouseDown(Button:TMouseButton;Shift:TShiftState;X,Y:Integer);override;
     procedure MouseUp(Button:TMouseButton;Shift:TShiftState;X,Y:Integer);override;
@@ -240,7 +241,8 @@ type
     procedure PaintStop;
     procedure PaintTile(ATile:TTile);
     procedure Paint; override;
-  private
+  //private
+  public
     FMarkLayer:TWMTS_Layer; //用于显示预渲染标注图层
     FFeatureLayers:TList;   //用于显示几何图形
   public

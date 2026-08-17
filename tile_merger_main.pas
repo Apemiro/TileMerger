@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, FileUtil, SpinEx, Forms, Controls, Graphics, Dialogs,
-  StdCtrls, ExtCtrls, Spin, ComCtrls, Menus,
+  StdCtrls, ExtCtrls, Spin, ComCtrls, Menus, Clipbrd,
   {$if defined(windows)}
   Windows,
   {$elseif defined(Darwin)}
@@ -28,6 +28,11 @@ type
     CalendarFlow_TimeOption: TCalendarFlow;
     Label_export: TLabel;
     MainMenu_TileMerger: TMainMenu;
+    MenuItem_TV_CopyCRS_LL: TMenuItem;
+    MenuItem_TV_CopyCRS_XY: TMenuItem;
+    MenuItem_TV_div01: TMenuItem;
+    MenuItem_TV_CopyCRS: TMenuItem;
+    MenuItem_TV_RedownloadTile: TMenuItem;
     MenuItem_ViewSaveRect: TMenuItem;
     MenuItem_ViewLocation: TMenuItem;
     MenuItem_FeatureExport: TMenuItem;
@@ -76,6 +81,7 @@ type
     procedure MenuItem_OptionSettingClick(Sender: TObject);
     procedure MenuItem_PoiServerClick(Sender: TObject);
     procedure MenuItem_SL_ReloadClick(Sender: TObject);
+    procedure MenuItem_TV_CopyCRS_LLXYClick(Sender: TObject);
     procedure MenuItem_TV_RedownloadClick(Sender: TObject);
     procedure MenuItem_TV_ZoomToResolutionClick(Sender: TObject);
     procedure MenuItem_ViewAutoFetchClick(Sender: TObject);
@@ -84,6 +90,7 @@ type
     procedure MenuItem_ViewShowGridClick(Sender: TObject);
     procedure MenuItem_ViewShowInfoClick(Sender: TObject);
     procedure MenuItem_ViewShowScaleClick(Sender: TObject);
+    procedure PopupMenu_TileViewerPopup(Sender: TObject);
     procedure TreeView_wmts_listMouseDown(Sender: TObject;
       Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
     procedure TreeView_wmts_listMouseUp(Sender: TObject; Button: TMouseButton;
@@ -288,6 +295,11 @@ begin
   end;
 end;
 
+procedure TFormTileMerger.MenuItem_TV_CopyCRS_LLXYClick(Sender: TObject);
+begin
+  ClipBoard.AsText:=TMenuItem(Sender).Caption;
+end;
+
 //{$define MonoTile}
 procedure TFormTileMerger.MenuItem_TV_RedownloadClick(Sender: TObject);
 {$ifdef MonoTile}
@@ -396,6 +408,24 @@ begin
   FTileViewer.Refresh;
 end;
 
+procedure TFormTileMerger.PopupMenu_TileViewerPopup(Sender: TObject);
+var cur:TPoint;
+    gpXY, gpLL:TGeoPoint;
+    NS, EW:string;
+begin
+  cur:=TileViewer.MouseCursor;
+  gpXY:=TileViewer.CursorToLocation(cur.X,cur.Y);
+  MenuItem_TV_CopyCRS_LL.Enabled:=false;
+  MenuItem_TV_CopyCRS_LL.Caption:='<无投影信息>';
+  if gpXY.x>0 then EW:='E' else if gpXY.x<0 then EW:='W' else EW:='';
+  if gpXY.y>0 then NS:='N' else if gpXY.y<0 then NS:='S' else NS:='';
+  MenuItem_TV_CopyCRS_XY.Caption:=Format('(%.1f%s, %.1f%s)',[abs(gpXY.X),EW,abs(gpXY.X),NS]);
+  if TileViewer.CurrentTileMatrixSet.Projection=nil then exit;
+  gpLL:=TileViewer.CurrentTileMatrixSet.Projection.XYToLatlong(gpXY);
+  MenuItem_TV_CopyCRS_LL.Caption:=Format('(%3.8f%s, %3.8f%s)',[abs(gpLL.lng),EW,abs(gpLL.lat),NS]);
+  MenuItem_TV_CopyCRS_LL.Enabled:=true;
+end;
+
 procedure TFormTileMerger.TreeView_wmts_listMouseDown(Sender: TObject;
   Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 var tmpNode:TTreeNode;
@@ -475,6 +505,10 @@ begin
   end;
   with StatusBar_TileMerger.Panels[1] do begin
     Text:=FTileViewer.CurrentTileMatrixSet.Identifier;
+    Width:=Canvas.TextWidth(Text+'##');
+  end;
+  with StatusBar_TileMerger.Panels[2] do begin
+    Text:='';
     Width:=Canvas.TextWidth(Text+'##');
   end;
   CalendarFlow_TimeOption.ClearCountDate;

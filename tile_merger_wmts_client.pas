@@ -1024,26 +1024,13 @@ begin
   tmpFeatureLayer.Title:='搜索结果';
   tmpFeatureLayer.DisplayName:='搜索结果';
   tmpFeatureLayer.Visible:=true;
-  {
-  tmpPoint:=TAGeoPointGeometry.Create(2);
-  tmpPoint.X:=119.30;
-  tmpPoint.Y:=26.05;
-  tmpPoint.LabelText:='福州';
-  tmpFeatureLayer.Features.AddFeature(tmpPoint);
-  tmpPoint:=TAGeoPointGeometry.Create(2);
-  tmpPoint.X:=110.69;
-  tmpPoint.Y:=32.16;
-  tmpPoint.LabelText:='测试点';
-  tmpFeatureLayer.Features.AddFeature(tmpPoint);
-  }
   FFeatureLayerList.Add(tmpFeatureLayer);
+
   tmpFeatureLayer:=TWMTS_FeatureLayer.Create;
   tmpFeatureLayer.Title:='视图框';
   tmpFeatureLayer.DisplayName:='视图框';
   tmpFeatureLayer.Visible:=true;
   FFeatureLayerList.Add(tmpFeatureLayer);
-
-
 
   tmpServiceConfig.url_replacement.old_pattern:='//wayback.';
   tmpServiceConfig.url_replacement.new_pattern:='//wayback-a.';

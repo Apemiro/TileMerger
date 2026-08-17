@@ -59,7 +59,7 @@ type
   end;
 
 implementation
-uses tile_merger_projection, URIParser, fpjson, debugline;
+uses tile_merger_projection, URIParser, fpjson, debugline, RegExpr, tile_merger_main, tile_merger_wmts_client;
 
 
 function fetch_poi_result_to_str(fetchresult:TFetchPOIResult):string;
@@ -218,28 +218,62 @@ end;
 
 constructor TPOISearchTask.Create(aStrings:TStrings; aUrlTemplate:string; aFeatures:TAGeoFeatures; ProgressEvent:TPOISearchTaskProgressEvent=nil);
 var idx:integer;
-    search_key:string;
+    search_key,real_search_key:string;
     thd:TPOISearchThread;
     waiting_ms:integer;
+    reg:TRegExpr;
+    coords:string;
+    lat,lng:double;
+    tmpFea:TAGeoPointGeometry;
 begin
   inherited Create;
   FSearchEntries:=TStringList.Create;
-  FSearchEntries.Sorted:=true;
+  //FSearchEntries.Sorted:=true;
   FSearchEntries.Assign(aStrings);
   FUrlTemplate:=aUrlTemplate;
   PFeatures:=aFeatures;
   FOnProgress:=ProgressEvent;
 
+  reg:=TRegExpr.Create('(\{[0-9,.]+\})');
+  try
+
   idx:=0;
   Position:=0;
   waiting_ms:=0;
   for search_key in FSearchEntries do begin
-    thd:=TPOISearchThread.Create(Self, GetSearchURL(search_key), search_key);
+    if reg.Exec(search_key) then begin
+      coords:=reg.Match[1];
+      if pos(',',coords)>0 then begin
+        coords:=StringReplace(coords, '{', '', [rfReplaceAll]);
+        coords:=StringReplace(coords, '}', '', [rfReplaceAll]);
+        SScanf(coords, '%f,%f', [@lng, @lat]);
+        real_search_key:=reg.Replace(search_key,'',false);
+        tmpFea:=TAGeoPointGeometry.Create(2);
+        tmpFea.X:=lng;
+        tmpFea.Y:=lat;
+        tmpFea.LabelText:=real_search_key;
+        WMTS_Client.FeatureLayerByName['搜索结果'].Features.AddFeature(tmpFea);
+        Position:=Position+1;
+        ProgressEvent(Position, TaskSize);
+        continue;
+      end else begin
+        real_search_key:=reg.Replace(search_key, '', false);
+      end;
+    end else begin
+      real_search_key:=search_key;
+    end;
+    thd:=TPOISearchThread.Create(Self, GetSearchURL(real_search_key), search_key);
     FSearchEntries.Objects[idx]:=thd;
     thd.FWaitMsBeforeRequest:=waiting_ms;
     thd.Start;
     inc(idx);
-    inc(waiting_ms, 50);
+    inc(waiting_ms, 100);
+
+  end;
+
+  finally
+    reg.Free;
+    FormTileMerger.UpdateFeatureListEntry;
   end;
 
 end;
