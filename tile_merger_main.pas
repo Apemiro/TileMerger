@@ -283,10 +283,9 @@ procedure TFormTileMerger.MenuItem_SL_ReloadClick(Sender: TObject);
 var DataObject:TObject;
     tmpServer:TWMTS_Service;
 begin
+  if TreeView_wmts_list.Selected=nil then exit;
   DataObject:=TObject(TreeView_wmts_list.Selected.Data);
   if DataObject is TWMTS_Service then begin
-
-
     tmpServer:=TWMTS_Service(DataObject);
     tmpServer.Clear;//只清除layer和tms
     tmpServer.LoadFromManifestXml(tmpServer.XmlURL,tmpServer.Config,true);
@@ -432,8 +431,8 @@ var tmpNode:TTreeNode;
 begin
   if Button<>mbRight then exit;
   tmpNode:=TreeView_wmts_list.GetNodeAt(X,Y);
-  TreeView_wmts_list.BeginUpdate;
   if tmpNode<>nil then try
+    TreeView_wmts_list.BeginUpdate;
     TreeView_wmts_list.ClearSelection;
     TreeView_wmts_list.Select(tmpNode);
   finally
@@ -447,8 +446,8 @@ var tmpNode:TTreeNode;
 begin
   if Button<>mbRight then exit;
   tmpNode:=TreeView_wmts_list.GetNodeAt(X,Y);
-  TreeView_wmts_list.BeginUpdate;
   if tmpNode<>nil then try
+    TreeView_wmts_list.BeginUpdate;
     TreeView_wmts_list.ClearSelection;
     TreeView_wmts_list.Select(tmpNode);
   finally
